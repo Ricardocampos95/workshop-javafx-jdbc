@@ -8,4 +8,8 @@ module workshop_javafx_jdbc {
 
 	exports application;
 	exports gui;
+	exports model.services;
+	exports model.entites;
+
+	
 }
