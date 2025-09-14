@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 
 import application.Main;
+import db.DbIntegrityException;
 import gui.listeners.DataChangeListener;
 import gui.util.Alerts;
 import gui.util.Utils;
@@ -35,21 +36,28 @@ import model.services.DepartmentService;
 public class DepartmentListController implements Initializable, DataChangeListener {
 
 	private DepartmentService service;
+	private ObservableList<Department> obsList;
 
 	@FXML
 	private TableView<Department> tableViewDepartment;
+	
 	@FXML
 	private Button btNew;
+	
 	@FXML
 	private TableColumn<Department, Integer> tableColumnId;
+	
 	@FXML
 	private TableColumn<Department, String> tableColumnName;
+	
 	@FXML
 	private TableColumn<Department, Department> tableColumnEdit;
+	
 	@FXML
 	private TableColumn<Department, Department> tableColumnRemove;
+	
 
-	private ObservableList<Department> obsList;
+	
 
 	@FXML
 	public void onBtNewAction(ActionEvent event) {
@@ -160,16 +168,20 @@ public class DepartmentListController implements Initializable, DataChangeListen
 	
 	private void removeEntity(Department obj) {
 		
-		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-		alert.setTitle("Confirmation");
-		alert.setHeaderText("Are you sure you want to delete?");
-		alert.setContentText("Department: " + obj.getName());
-		
-		Optional<ButtonType> result = alert.showAndWait();
-		
+		Optional<ButtonType> result = Alerts.showConfirmation("Confirmation", "Are you sure to delete?");
+
 		if (result.isPresent() && result.get() == ButtonType.OK) {
-			service.remove(obj);
-			tableViewDepartment.getItems().remove(obj);	
+			if (service == null) {
+				throw new IllegalStateException("Service was null!");
+			}
+			try {
+				service.remove(obj);
+				updateTableView();
+			} catch (DbIntegrityException e) {
+				Alerts.showAlert("Error remocing objet", null, e.getMessage(), AlertType.ERROR);
+			}
+			
+				
 		}
 	}
 	
