@@ -23,5 +23,11 @@ public class DepartmentService {
 		}
 		
 	}
+	
+	public void remove(Department obj) {
+		if (obj.getId() != null) {
+			dao.deleteByid(obj.getId());
+		}
+	}
 
 }
