@@ -13,6 +13,7 @@ import gui.listeners.DataChangeListener;
 import gui.util.Alerts;
 import gui.util.Utils;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -30,12 +31,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.Pane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import model.entites.Department;
 import model.entites.Seller;
+import model.services.DepartmentService;
 import model.services.SellerService;
 
 public class SellerListController implements Initializable, DataChangeListener {
 
-	private SellerService service;
+	private SellerService sellerService;
+	private DepartmentService departmentService = new DepartmentService();
 	private ObservableList<Seller> obsList;
 
 	@FXML
@@ -65,18 +69,19 @@ public class SellerListController implements Initializable, DataChangeListener {
 	@FXML
 	private TableColumn<Seller, Seller> tableColumnRemove;
 	
-
+	@FXML
+	private TableColumn<Seller, String> tableColumnDepartment;
 	
 
 	@FXML
 	public void onBtNewAction(ActionEvent event) {
 		Stage parentStage = Utils.currentStage(event);
 		Seller obj = new Seller();
-		//createDialogForm(obj, "/gui/SellerForm.fxml", parentStage);
+		createDialogForm(obj, "/gui/SellerForm.fxml", parentStage);
 	}
 
-	public void setSellerService(SellerService service) {
-		this.service = service;
+	public void setSellerService(SellerService sellerService) {
+		this.sellerService = sellerService;
 	}
 
 	@Override
@@ -89,21 +94,37 @@ public class SellerListController implements Initializable, DataChangeListener {
 		tableColumnName.setCellValueFactory(new PropertyValueFactory<>("name"));
 		tableColumnEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
 		tableColumnBirthDate.setCellValueFactory(new PropertyValueFactory<>("birthDate"));
-		Utils.formatTableColumnDate(tableColumnBirthDate, "dd/MM/yyyy");
 		tableColumnBaseSalary.setCellValueFactory(new PropertyValueFactory<>("baseSalary"));
 		Utils.formatTableColumnDouble(tableColumnBaseSalary, 2);
+		
 
 		Stage stage = (Stage) Main.getMainScene().getWindow();
-		tableViewSeller.prefHeightProperty().bind(stage.heightProperty()); // Ajustar a tabela com o tamanho da
-																				// janela
+		tableViewSeller.prefHeightProperty().bind(stage.heightProperty());
+																	
+	}
+	
+	private void loadDepartment() {
+		
+		tableColumnDepartment.setCellValueFactory(cellData -> {
+			try {
+				Department dept = cellData.getValue().getDepartment();  
+			    String deptName = (dept == null) ? "" : dept.getName();
+			    return new ReadOnlyStringWrapper(deptName);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return new ReadOnlyStringWrapper("Erro");
+			}
+		    
+		    
+		});
 	}
 
 	public void updateTableView() {
-		if (service == null) {
+		if (sellerService == null) {
 			throw new IllegalStateException("Service was null!");
 		}
 
-		List<Seller> list = service.findAll();
+		List<Seller> list = sellerService.findAll();
 
 		obsList = FXCollections.observableArrayList(list);
 		tableViewSeller.setItems(obsList);
@@ -113,28 +134,30 @@ public class SellerListController implements Initializable, DataChangeListener {
 	}
 
 	private void createDialogForm(Seller obj, String absoluteName, Stage parentStage) {
-//		try {
-//		FXMLLoader loader = new FXMLLoader(getClass().getResource(absoluteName));
-//			Pane pane = loader.load();
-//
-//			SellerFormController controller = loader.getController();
-//			controller.setSeller(obj);
-//			controller.setSellerService(new SellerService());
-//			controller.subscribeDataChangeListener(this);
-//			controller.updateFormData();
-//
-//			Stage dialogStage = new Stage();
-//			dialogStage.setTitle("Enter Seller data");
-//			dialogStage.setScene(new Scene(pane));
-//			dialogStage.setResizable(false); // Janela pode ser redimensionada
-//			dialogStage.initOwner(parentStage); // indicar quem é a janela que mandou abrir a nova
-//			dialogStage.initModality(Modality.WINDOW_MODAL); // Enquanto não fechar a janela nova, nao deixa abrir a
-//																// anterior!
-//			dialogStage.showAndWait();
-//
-//		} catch (IOException e) {
-//			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
-//		}
+		try {
+			FXMLLoader loader = new FXMLLoader(getClass().getResource(absoluteName));
+			Pane pane = loader.load();
+
+			SellerFormController controller = loader.getController();
+			controller.setSeller(obj);
+			controller.setSellerService(sellerService);
+			controller.setDepartmentService(departmentService); 
+			controller.subscribeDataChangeListener(this);
+			controller.loadAssociatedObjects();
+			controller.updateFormData();
+
+			Stage dialogStage = new Stage();
+			dialogStage.setTitle("Enter Seller data");
+			dialogStage.setScene(new Scene(pane));
+			dialogStage.setResizable(false); // Janela pode ser redimensionada
+			dialogStage.initOwner(parentStage); // indicar quem é a janela que mandou abrir a nova
+			dialogStage.initModality(Modality.WINDOW_MODAL); // Enquanto não fechar a janela nova, nao deixa abrir a
+															// anterior!
+			dialogStage.showAndWait();
+
+		} catch (IOException e) {
+			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
+		}
 	} 
 
 	private void initEditButtons() {
@@ -185,11 +208,11 @@ public class SellerListController implements Initializable, DataChangeListener {
 		Optional<ButtonType> result = Alerts.showConfirmation("Confirmation", "Are you sure to delete?");
 
 		if (result.isPresent() && result.get() == ButtonType.OK) {
-			if (service == null) {
+			if (sellerService == null) {
 				throw new IllegalStateException("Service was null!");
 			}
 			try {
-				service.remove(obj);
+				sellerService.remove(obj);
 				updateTableView();
 			} catch (DbIntegrityException e) {
 				Alerts.showAlert("Error remocing objet", null, e.getMessage(), AlertType.ERROR);

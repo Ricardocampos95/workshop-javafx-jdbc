@@ -27,4 +27,31 @@ public class Constraints {
 			}
 		});
 	}
+	
+	public static void setTextFieldBirthDate(TextField txt) {
+	    txt.textProperty().addListener((obs, oldValue, newValue) -> {
+	        if (newValue != null && !newValue.matches("^([0][1-9]|[12][0-9]|3[01])/([0][1-9]|1[0-2])/\\d{4}$")) {
+	            txt.setText(oldValue);
+	        }
+	    });
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
